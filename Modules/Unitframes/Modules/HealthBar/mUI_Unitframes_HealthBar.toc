@@ -1,0 +1,7 @@
+## Interface: 40300
+## Title: m|cffe06767UI|r - |cff51a2c0Unitframes|r [|cff09b46aHealth Bar|r]
+## LoadOnDemand: 1
+## Dependencies: mUI_Unitframes
+## Version: 1.0
+
+## X-mUI_Unitframes_Module: 1

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SymFiles xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.azeroth.se/SymFiles.xsd">
+	<Set Folder="">
+		<Directories>
+			<Directory Path="" Target="mUI" />
+			<Directory Path="Modules\Auras" Target="mUI_Auras" />
+			<Directory Path="Modules\Unitframes" Target="mUI_Unitframes" />
+			<Directory Path="Modules\Unitframes\Modules\AltPowerBar" Target="mUI_Unitframes_AltPowerBar" />
+			<Directory Path="Modules\Unitframes\Modules\CastBar" Target="mUI_Unitframes_CastBar" />
+			<Directory Path="Modules\Unitframes\Modules\HealthBar" Target="mUI_Unitframes_HealthBar" />
+			<Directory Path="Modules\Unitframes\Modules\PowerBar" Target="mUI_Unitframes_PowerBar" />
+			<Directory Path="Modules\Unitframes\Modules\Runes" Target="mUI_Unitframes_Runes" />
+		</Directories>
+	</Set>
+</SymFiles>

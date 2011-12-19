@@ -1,0 +1,10 @@
+## Interface: 40300
+## Title: m|cffe06767UI|r - |cff51a2c0Unitframes|r
+## LoadOnDemand: 1
+## Dependencies: mUI, oUF
+## Version: 1.0
+
+## X-mUI-Module: 1
+
+Unitframes.lua
+Config.lua
