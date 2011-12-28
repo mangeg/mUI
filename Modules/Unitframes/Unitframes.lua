@@ -17,6 +17,8 @@ local oUF = oUF
 local db, gdb
 local layout
 
+plugin.ModulesNotLoaded = {}
+
 local defaults = {
 	Enabled = true,
 	Layouts = {
@@ -70,11 +72,12 @@ local defaults = {
 	},
 	
 	Colors = {
-		Class = {},
 		Power = {},
-		Reaction = {}
+		Reaction = {},
 		Other = {
-			Health = gdb.Colors.BorderColor,
+			Health = mUI.db.profile.Colors.Border,
+			HalfHealth = {1, 1, 0},
+			MinHealth = {1, 0, 0},
 			Tapped = { 0.55, 0.57, 0.61 },
 			Disconnected = { 0.84, 0.75, 0.65} ,
 			AltPower = { 1, 0, 0 },
@@ -82,9 +85,6 @@ local defaults = {
 	},
 }
 
-for class, color in pairs(RAID_CLASS_COLORS) do
-	defaults.Colors.Class[class] = {color.r, color.g, color.b, color.a or 1}
-end
 for powerName, color in pairs(PowerBarColor) do
 	if type(powerName) == "string" then
 		if color.r then
@@ -95,13 +95,13 @@ for powerName, color in pairs(PowerBarColor) do
 				defaults.Colors.Power["BALANCE_NEGATIVE_ENERGY"] = {neg.r, neg.g, neg.b, neg.a or 1}
 			end
 			if pos then
-				defaults.Colors.Power["BALANCE_POSETIVE_ENERGY"] = {pos.r, pos.g, pos.b, pos.a or 1}
+				defaults.Colors.Power["BALANCE_POSITIVE_ENERGY"] = {pos.r, pos.g, pos.b, pos.a or 1}
 			end
 		end
 	end
 end
 for reaction, color in pairs(FACTION_BAR_COLORS) do
-	defaults.Colors.Reaction[reaction] = {color.r, color.g, color.b, color.a or 1}
+	defaults.Colors.Reaction[reaction..""] = {color.r, color.g, color.b, color.a or 1}
 end
 defaults.Colors.Power["POWER_TYPE_PYRITE"] = { 0, 0.79215693473816, 1 }
 defaults.Colors.Power["POWER_TYPE_STEAM"] = { 0.94901967048645, 0.94901967048645, 0.94901967048645 }
@@ -122,11 +122,15 @@ function plugin:OnInitialize()
 end
 
 function plugin:OnEnable()
+	self:OnProfileChanged()
+	self:UpdateColors()
 end
 
 function plugin:OnProfileChanged()
 	db = self.db.profile
 	gdb = mUI.db.profile
+	
+	self:LoadModules()
 end
 
 function plugin:UpdateColors()
@@ -134,8 +138,10 @@ function plugin:UpdateColors()
 	local tapped = db.Other.Tapped
 	local dc = db.Other.Disconnected
 	local health = db.Other.Health
+	local halfHealth = db.Other.HalfHealth
+	local minHealth = db.Other.MinHealth
 	
-	local reaction db.Reaction
+	local reaction = db.Reaction
 	local power = db.Power
 	
 	oUF.colors = setmetatable({
@@ -185,10 +191,96 @@ function plugin:UpdateColors()
 			["WARRIOR"]     = gdb.Colors.Class.WARRIOR,
 		}, getmetatable(oUF.colors.class)),
 		smooth = setmetatable({
-			1, 0, 0,
-			1, 1, 0,
+			minHealth[1], minHealth[2], minHealth[3],
+			halfHealth[1], halfHealth[2], halfHealth[3],
 			health[1], health[2], health[3],
 		}, getmetatable(oUF.colors.smooth)),
 		
 	}, getmetatable(oUF.colors))
 end
+
+function plugin:LoadModules()
+	local current_profile = mUI.db:GetCurrentProfile()
+	
+	local sv = mUI.db.sv
+	local sv_namespaces = sv and sv.namespaces
+
+	for i, name, moduleName in self:IterateLoadOnDemandModules() do
+		local module_sv = sv_namespaces[moduleName]
+		local module_profile_db = module_sv and module_sv.profiles and module_sv.profiles[current_profile]
+		local enabled = module_profile_db and module_profile_db.Enabled
+		
+		if enabled == nil then
+			local defaultState = GetAddOnMetadata(name, "X-mUI-DefaultState")
+			local isEnabled = select(4, GetAddOnInfo(name))
+			enabled = (default_state ~= "disabled") and isEnabled ~= nil
+		end
+		
+		local loaded, reason
+		if enabled then
+			loaded, reason = LoadAddOn(i)
+		end
+		
+		if not loaded and reason then
+			Debug:Print("UF Module failed to load", name, reason)
+		elseif loaded then
+			Debug:Print("Loaded UF Module", name)
+		else
+			tinsert(self.ModulesNotLoaded, name)
+		end
+	end
+end
+
+do
+	local function checkIfDependand(...)
+		for i = 1, select("#", ...) do
+			if (select(i, ...)) == "mUI_Unitframes" then
+				return true
+			end			
+		end	
+		return false
+	end
+
+	local function iterAddons(total, i)
+		i = i + 1
+		if i >= total then
+			return nil
+		end
+		
+		if not IsAddOnLoadOnDemand(i) then
+			return iterAddons(total, i)
+		end
+		
+		local name = GetAddOnInfo(i)		
+		local moduleName = name:match("mUI_Unitframes_([A-Za-z0-9]*)$")		
+		if not moduleName then
+			return iterAddons(total, i)
+		end
+		
+		if not checkIfDependand(GetAddOnDependencies(i)) then
+			return iterAddons(total, i)
+		end
+		
+		local loadCheck = GetAddOnMetadata(name, "X-mUI-LoadCheck")
+		if loadCheck then
+			local func, err = loadstring(loadCheck)			
+			if func then
+				local success, ret = pcall(func)
+				if not ret then
+					return iterAddons(total, i)
+				end
+			else
+				Debug:Print("Error loading X-mUI-LoadCeck", err)
+			end
+		end
+		
+		return i, name, moduleName
+	end
+	
+	--- Iterator for all modules that are loadable and should be loaded.
+	-- @usage mUI:IterateLoadOnDemandModules()
+	function plugin:IterateLoadOnDemandModules()
+		return iterAddons, GetNumAddOns(), 0
+	end
+end
+

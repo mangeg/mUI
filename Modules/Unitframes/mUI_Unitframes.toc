@@ -7,4 +7,5 @@
 ## X-mUI-Module: 1
 
 Unitframes.lua
+Modules.lua
 Config.lua

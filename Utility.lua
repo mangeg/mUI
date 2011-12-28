@@ -10,6 +10,56 @@ local expect = Debug.expect
 
 _, mUI.pClass = UnitClass("player")
 
+do
+	local cache = setmetatable({}, {__mode='k'})
+	
+	--- Fetch a new table
+	function mUI.new()
+		local t = next(cache)
+		if t then
+			cache[t] = nil
+			return t
+		end
+		
+		return {}
+	end
+	
+	--- Delete a table and put it back in the cache
+	-- @param t The table to delete.
+	-- @usage g = mUI.del(g)
+	function mUI.del(t)
+		if DEBUG then
+			expect(t, "typeof", "table")
+			expect(t, "not_inset", cache)
+		end
+		
+		wipe(t)
+		cache[t] = true
+		return nil
+	end
+end
+
+--- Merge 2 tables and create a union between them.
+-- If a key exist in both, t2 will have priority.
+-- @param t1 Table 1
+-- @param t2 Table 2
+-- @usage union = mUI.Merge(table1, table2)
+function mUI.Merge(t1, t2)
+	if DEBUG then
+		expect(t1, "typeof", "table")
+		expect(t2, "typeof", "table")
+	end
+	
+	local x = {}
+	for k, v in pairs(t1) do
+		x[k] = v
+	end
+	for k, v in pairs(t2) do
+		x[k] = v
+	end
+	return x
+end
+
 --- Shortens a value
 -- @param v The value to shorten
 -- @return The shorted value

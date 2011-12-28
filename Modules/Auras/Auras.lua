@@ -14,5 +14,5 @@ setmetatable(globalPlugin, {
 plugin:SetName("Auras")
 plugin:SetDescription("Replacement for the default buff and debuff display")
 plugin:SetDefaults({
-	enabled = true,
+	Enabled = true,
 })

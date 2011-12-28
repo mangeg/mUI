@@ -12,8 +12,10 @@ Debug:AddGlobal("mUI", mUI)
 local LSM = LibStub("LibSharedMedia-3.0")
 
 local db
-local modulePattern = "mUI_%a*$"
-local isModule, shouldLoadModule
+
+mUI.Media = {
+	Blank = [[Interface\BUTTONS\WHITE8X8]],
+}
 
 local defaults = {
 	profile = {
@@ -22,77 +24,180 @@ local defaults = {
 				Enabled = true,
 			},
 		},
-	
-		StatusBarTexture = LSM.DefaultMedia.statusbar,
-
-		Fonts = {
-			NormalFont = LSM.DefaultMedia.font,
-			Scale = 1,
+		
+		Media = {
+			Textures = {
+				StatusBar = LSM:GetDefault("statusbar"),
+			},
+			Fonts = {
+				["**"] = {
+					Font = LSM:GetDefault("font"),
+					Scale = 1,
+				},
+				Normal = {},				
+			},
 		},
 			
 		Colors = {
 			ClassColoredBorders = false,
 			
-			StatusBarColor = {0.23, 0.23, 0.23},
-			BorderColor = {0.23, 0.23, 0.23},
-			BackdropColor = {0.07, 0.07, 0.07},
+			StatusBar = {0.23, 0.23, 0.23},
+			Border = {0.23, 0.23, 0.23},
+			Backdrop = {0.07, 0.07, 0.07},
 			
-			ClassColors = {
-				["DEATHKNIGHT"] = { 196/255,  30/255,  60/255 },
-				["DRUID"]       = { 255/255, 125/255,  10/255 },
-				["HUNTER"]      = { 171/255, 214/255, 116/255 },
-				["MAGE"]        = { 104/255, 205/255, 255/255 },
-				["PALADIN"]     = { 245/255, 140/255, 186/255 },
-				["PRIEST"]      = { 212/255, 212/255, 212/255 },
-				["ROGUE"]       = { 255/255, 243/255,  82/255 },
-				["SHAMAN"]      = {  41/255,  79/255, 155/255 },
-				["WARLOCK"]     = { 148/255, 130/255, 201/255 },
-				["WARRIOR"]     = { 199/255, 156/255, 110/255 },
-			},
+			Class = {}
 		},
 	},
 }
 
 for class, color in pairs(RAID_CLASS_COLORS) do
-	local d = defaults.profile.Colors.ClassColors
-	d[class][1] = color.r
-	d[class][2] = color.g
-	d[class][3] = color.b
-	d[class][4] = color.a or 1
+	defaults.profile.Colors.Class[class] = {color.r, color.g, color.b, color.a or 1}
 end
 
 function mUI:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("mUIDB", defaults, "Default")
 	defaults = nil
 	
-	self.db.RegisterCallback(self, "OnProfileChanged", "ProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileCopied", "ProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileReset", "ProfileChanged")
+	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
+	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
+	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 	
 	self.Callbacks = LibStub("CallbackHandler-1.0"):New(self)	
 	
 	LibStub("LibDualSpec-1.0"):EnhanceDatabase(self.db, name)
-	db = self.db.profile
 	
-	--self:CheckAndLoadModules(modulePattern, shouldLoadModule)
-	--self:AddModulesToOptions()
+	self:RegisterEvent("ADDON_LOADED")
+	self:ADDON_LOADED()
 	
-	self.Options:SetupLDB()	
-	self:UpdateMedia()	
-	
-	LSM.RegisterCallback(self, "LibSharedMedia_Registered")
+	LoadAddOn("LibDataBroker-1.1")
 end
 
 function mUI:OnEnable()
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+	
+	self:OnProfileChanged()
+	
+	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "MediaRegistered")
+	self:UpdateMedia()
 end
 
-function mUI:ProfileChanged()
+--- Load new settings after profile has been changed.
+function mUI:OnProfileChanged()
 	db = self.db.profile
+	
+	for _, module in self:IterateEnabledModules() do
+		if module.OnProfileChanged then
+			module:OnProfileChanged()
+		end
+	end
+	
+	self:LoadModules()
+	
+	for _,module in self:IterateModules() do
+		if module.db.profile.Enabled then
+			self:EnableModuleState(module)
+		else
+			self:DisableModuleState(module)
+		end
+	end
 end
 
-function mUI:LibSharedMedia_Registered(mediaType, name)	
+function mUI:MediaRegistered(_, mediaType, name)
+	self:CallFunctionOnEnabledModules("MediaRegistered", mediaType, name)
+end
+
+function mUI:ADDON_LOADED(event, addon)	
+	if not self.Options.LibDataBrokerLauncher then
+		self.Options:SetupLDB()
+	end
+end
+
+--- Load all Load-On-Demand modules
+-- @usage mUI:LoadModules()
+function mUI:LoadModules()
+	local current_profile = self.db:GetCurrentProfile()
+	
+	local sv = self.db.sv
+	local sv_namespaces = sv and sv.namespaces
+	
+	for i, name, moduleName in self:IterateLoadOnDemandModules() do		
+		local module_sv = sv_namespaces[moduleName]
+		local module_profile_db = module_sv and module_sv.profiles and module_sv.profiles[current_profile]
+		local enabled = module_profile_db and module_profile_db.Enabled
+		
+		if enabled == nil then
+			local defaultState = GetAddOnMetadata(name, "X-mUI-DefaultState")
+			local isEnabled = select(4, GetAddOnInfo(name))
+			enabled = (default_state ~= "disabled") and isEnabled ~= nil
+		end
+		
+		local loaded, reason
+		if enabled then
+			loaded, reason = LoadAddOn(i)
+		end
+		
+		if not loaded and reason then
+			Debug:Print("Module failed to load", name, reason)
+		elseif loaded then
+			Debug:Print("Loaded module", name)
+		else
+			tinsert(self.ModulesNotLoaded, name)
+		end
+	end
+end
+
+do
+	local function checkIfDependand(...)
+		for i = 1, select("#", ...) do
+			if (select(i, ...)) == "mUI" then
+				return true
+			end			
+		end	
+		return false
+	end
+
+	local function iterAddons(total, i)
+		i = i + 1
+		if i >= total then
+			return nil
+		end
+		
+		if not IsAddOnLoadOnDemand(i) then
+			return iterAddons(total, i)
+		end
+		
+		local name = GetAddOnInfo(i)		
+		local moduleName = name:match("mUI_([A-Za-z0-9]*)$")		
+		if not moduleName then
+			return iterAddons(total, i)
+		end
+		
+		if not checkIfDependand(GetAddOnDependencies(i)) then
+			return iterAddons(total, i)
+		end
+		
+		local loadCheck = GetAddOnMetadata(name, "X-mUI-LoadCheck")
+		if loadCheck then
+			local func, err = loadstring(loadCheck)			
+			if func then
+				local success, ret = pcall(func)
+				if not ret then
+					return iterAddons(total, i)
+				end
+			else
+				Debug:Print("Error loading X-mUI-LoadCeck", err)
+			end
+		end
+		
+		return i, name, moduleName
+	end
+	
+	--- Iterator for all modules that are loadable and should be loaded.
+	-- @usage mUI:IterateLoadOnDemandModules()
+	function mUI:IterateLoadOnDemandModules()
+		return iterAddons, GetNumAddOns(), 0
+	end
 end
 
 --- Call function on a module.
@@ -102,7 +207,7 @@ end
 -- @param ... Parameters to pass to the function.
 function mUI:CallFunctionOnModule(module, funcName, ...)
 	if DEBUG then
-		expect(mdule, "typeof", "table")
+		expect(module, "typeof", "table")
 		expect(funcName, "typeof", "string")
 	end
 	if module[funcName] then
@@ -129,83 +234,16 @@ function mUI:CallFunctionOnEnabledModules(funcName, ...)
 	if DEBUG then
 		expect(funcName, "typeof", "string")
 	end
-	for _, module in self:IterateEnabledModules() do
+	for id, module in self:IterateEnabledModules() do
 		self:CallFunctionOnModule(module, funcName, ...)
 	end
 end
 
 --- Update media and bring values from SharedMedia and so on.
 function mUI:UpdateMedia()
-	self.Media.StatusBarTexture = LSM:Fetch("statusbar", db.StatusBarTexture)
-	self.Media.NormalFont = LSM:Fetch("font", db.Fonts.NormalFont)
+	--self.Media.StatusBarTexture = LSM:Fetch("statusbar", db.StatusBarTexture)
+	---self.Media.NormalFont = LSM:Fetch("font", db.Fonts.NormalFont)
 end
-
---- Load modules that match the patter passed the optional extra check
--- @param pattern The pattern for modules to match
--- @param extraCheck function to call that have to return true for the module to be loaded.
-function mUI:CheckAndLoadModules(pattern, extraCheck)
-	if DEBUG then
-		expect(pattern, 	"typeof", "string")
-		expect(stage, 		"typeof", "string;nil")
-		expect(extraCheck, 	"typeof", "function;nil")		
-	end	
-	
-	local reg = "(%a*)\\%a*.lua"
-	local stack = debugstack(2, 1, 1):match(reg)
-	
-	for i = 1, GetNumAddOns() do
-		name, title, notes, enabled, loadable, reason, security = GetAddOnInfo(i)
-		local loadState = GetAddOnMetadata(i, "X-LoadWhen")
-		if enabled and (not IsAddOnLoaded(i)) and loadable and name:match(pattern) then
-			local doLoad = true
-			if extraCheck then
-				doLoad = extraCheck(name)
-			end
-			if doLoad then
-				Debug:Print(stack, "Loading Module", title)
-				LoadAddOn(name)							
-			end
-		end
-	end
-end
-
-function mUI:AddModulesToOptions()
-	for i = 1, GetNumAddOns() do
-		name, title, notes, enabled, loadable, reason, security = GetAddOnInfo(i)
-		if isModule(name) then
-			self.Options.args.modules.args[name] = self.Options.args.modules.args[name] or {
-				type = "group",
-				name = title,
-				args = {
-				}
-			}
-			self.Options.args.modules.args[name].args.Enabled = {
-				type = "toggle",
-				name = "Enabled",
-				get = function(info)
-					return db.Modules[info[#info-1]].Enabled
-				end,
-				set = function(info, value)
-					db.Modules[info[#info-1]].Enabled = value
-					mUI:CheckAndLoadModules(modulePattern, isModule)
-				end,
-			}
-		end
-	end
-end
-
-mUI.Media = {
-	Blank = [[Interface\BUTTONS\WHITE8X8]],
-}
-
-isModule = function(moduleName)
-	return GetAddOnMetadata(moduleName, "X-mUI-Module") == "1"
-end
-
-shouldLoadModule = function(moduleName)
-	return isModule(moduleName) and db.Modules[moduleName].Enabled
-end
-
 
 --- Wrap a function to only be executed out of combat.
 -- @param func Function to run.
@@ -223,7 +261,7 @@ function mUI:OutOfCombatWrapper(func)
 	end
 end
 
-do
+do -- Out of combat wrapping
 	local inCombat = false
 	local inLockdown = false
 	local toRun = {}

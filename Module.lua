@@ -28,6 +28,10 @@ end
 -- @param id The full base name of the module
 -- @usage module = mUI:GetModuleByID("mUI_Unitframes")
 function mUI:GetModuleByID(id)
+	if DEBUG then
+		expect(id, "typeof", "string")
+	end
+
 	for name, module in self:IterateModules() do
 		if module.baseName == id then
 			return module
@@ -75,6 +79,7 @@ function mUI:LoadAndEnableModule(id, moduleName)
 	if loaded then
 		local module = self:GetModuleByID(id)
 		assert(module)
+		Debug:Print("Loaded module", module.baseName)
 		self:EnableModuleState(module)
 	else
 		if reason then
@@ -104,20 +109,23 @@ end
 local Module = {}
 mUI:SetDefaultModulePrototype(Module)
 
-LibStub("AceEvent-3.0"):RegisterEvent("ADDON_LOADED", function(event, addon)
-	if not mUI.Options or not mUI.Options.HandleModuleLoaded then
-		return
-	end
-	while true do
-		local module = table.remove(newModules, 1)
-		if not module then
-			break
-		end		
-		
-		mUI.Options:HandleModuleLoaded(module)
-		mUI:CallFunctionOnModules("OnModuleLoaded", module)
-	end
-end)
+do
+	local event = {}
+	LibStub("AceEvent-3.0").RegisterEvent(event, "ADDON_LOADED", function(event, addon)
+		if not mUI.Options or not mUI.Options.HandleModuleLoaded then
+			return
+		end	
+		while true do
+			local module = table.remove(newModules, 1)
+			if not module then
+				break
+			end		
+			
+			mUI.Options:HandleModuleLoaded(module)
+			mUI:CallFunctionOnModules("OnModuleLoaded", module)
+		end
+	end)
+end
 
 local function createModuleDB(module, defaults)
 	if DEBUG then
@@ -173,3 +181,6 @@ Module.IterateEnabledModules = mUI.IterateEnabledModules
 Module.GetModuleByID = mUI.GetModuleByID
 Module.EnableModuleState = mUI.EnableModuleState
 Module.DisableModuleState = mUI.DisableModuleState
+Module.CallFunctionOnModule = mUI.CallFunctionOnModule
+Module.CallFunctionOnModules = mUI.CallFunctionOnModules
+Module.CallFunctionOnEnabledModules = mUI.CallFunctionOnEnabledModules

@@ -4,4 +4,5 @@
 ## Dependencies: mUI_Unitframes
 ## Version: 1.0
 
-## X-mUI_Unitframes_Module: 1
+HealthBar.lua
+

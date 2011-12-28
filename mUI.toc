@@ -13,5 +13,5 @@ Utility.lua
 Objects\Objects.lua
 
 Core.lua
+Module.lua
 Options\Options.lua
-Modules\load.xml

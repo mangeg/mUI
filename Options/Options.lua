@@ -1,3 +1,6 @@
+--- mUI Options
+-- @module mUI.Options
+
 local name, mUI = ...
 
 local DEBUG = mUI.DEBUG
@@ -6,6 +9,7 @@ local expect = Debug.expect
 
 local AC = LibStub("AceConfig-3.0")
 local ACD = LibStub("AceConfigDialog-3.0")
+local LSM = LibStub("LibSharedMedia-3.0")
 
 if not AC then
 	LoadAddOn("Ace3")
@@ -27,13 +31,12 @@ do
 	end
 end
 
+--- Togle holding all options related information
+-- @type table
 local Options = {}
 mUI.Options = Options
 
-function test(param1, param2)
-end
-
-
+local moduleFullOptions = {}
 
 function Options:ToggleConfig() 
 
@@ -48,13 +51,6 @@ function Options:ToggleConfig()
 		GameTooltip:Hide()
 	end
 	
-	local options = {
-		type = "group",
-		name = (select(2, GetAddOnInfo(name))),
-		args = {
-		},
-	}
-	
 	local new_order
 	do
 		local current = 0
@@ -64,6 +60,178 @@ function Options:ToggleConfig()
 		end
 	end
 	
+	local function GetColorOptions()
+		
+		local colorOptions = {
+			Class = {
+				type = "group",
+				name = "Class",
+				guiInline = true,
+				order = new_order(),
+				args = {},
+			},
+			Other = {
+				type = "group",
+				name = "Other",
+				guiInline = true,
+				order = new_order(),
+				get = function(info)
+					local d = mUI.db.profile.Colors
+					return mUI.AceGUIGet(d, info)
+				end,
+				set = function(info, v1, v2, v3, v4)
+					local d = mUI.db.profile.Colors
+					mUI.AceGUISet(d, info, v1, v2, v3, v4)
+				end,
+				args = {
+					ClassColoredBorders = { type = "toggle", name = "Class color borders", order = new_order() },
+					sep1 = { type = "description", name = "", order = new_order() },
+					StatusBar = { type = "color", name = "Status Bar", order = new_order() },
+					Border = { type = "color", name = "Border", order = new_order(),
+						disabled = function(info)
+							return mUI.db.profile.Colors.ClassColoredBorders
+						end,
+					},
+					Backdrop = { type = "color", name = "Backdrop", order = new_order() },
+				},
+			},
+		}
+		
+		local colorOption = {
+			type = "color",
+			hasAlpha = false,
+			name = function(info)
+				local class = info[#info]
+				return LOCALIZED_CLASS_NAMES_MALE[class]
+			end,
+			get = function(info)
+				local class = info[#info]
+				return unpack(mUI.db.profile.Colors.Class[class])
+			end,
+			set = function(info, r, g, b, a)
+				local class = info[#info]
+				local color = mUI.db.profile.Colors.Class[class]
+				color[1], color[2], color[3] = r, g, b
+			end,
+		}
+		
+		for class, _ in pairs(RAID_CLASS_COLORS) do
+			colorOptions.Class.args[class] = colorOption
+		end
+
+		return colorOptions
+	end
+	
+	local function GetMediaOptions()		
+		local fontOptions
+		local function GetFontOption()			
+			local fontOption = {
+				type = "select",
+				name = "Font",
+				dialogControl = "LSM30_Font",
+				values = LSM:HashTable("font"),
+			}
+			
+			fontOptions = {
+				type = "group",
+				name = function(info) return info[#info] end,
+				guiInline = true,
+				get = function(info)
+					local d = mUI.db.profile.Media.Fonts[info[#info-1]]
+					return mUI.AceGUIGet(d, info)
+				end,
+				set = function(info, v1, v2, v3, v4)
+					local d = mUI.db.proifle.Media.Fonts[info[#info-1]]
+					mUI.AceGUISet(d, info, v1, v2, v3, v4)
+				end,
+				args = {
+					Font = fontOption,
+					Scale = {
+						type = "range",
+						name = "Scale",
+						min = 0.01,
+						step = 0.01,
+						max = 5,
+					},
+				},
+			}
+			
+			return fontOptions
+		end
+		
+		local function GetTextureOptions()
+			textureOptions = {
+				StatusBar = {
+					type = "select",
+					name = "Status Bar",
+					dialogControl = "LSM30_Statusbar",
+					values = LSM:HashTable("statusbar"),
+				},
+			}
+			
+			return textureOptions
+		end
+		
+		local mediaOptions = {
+			Fonts = {
+				type = "group",
+				name = "Fonts",
+				args = {}
+			},
+			Textures = {
+				type = "group",
+				name = "Texture",
+				get = function(info)
+					local d = mUI.db.profile.Media.Textures
+					return mUI.AceGUIGet(d, info)
+				end,
+				set = function(info, ...)
+					local d = mUI.db.profile.Media.Textures
+					mUI.AceGUISet(d, info, ...)
+				end,
+				args = GetTextureOptions()
+			},
+		}
+		
+		for fontName, fontData in pairs(mUI.db.defaults.profile.Media.Fonts) do
+			if fontName ~= "**" then
+				mediaOptions.Fonts.args[fontName] = fontOptions or GetFontOption()
+			end
+		end
+		
+		return mediaOptions
+	end
+	
+	local options = {
+		type = "group",
+		name = (select(2, GetAddOnInfo(name))),
+		childGroups = "tab",
+		args = {
+			General = {
+				order = new_order(),
+				type = "group",
+				name = "General",
+				args = {
+					Colors = {
+						type = "group",
+						name = "Colors",
+						order = new_order(),
+						args = GetColorOptions(),
+					},
+					Media = {
+						type = "group",
+						name = "Media",
+						order = new_order(),
+						args = GetMediaOptions(),
+					},
+				},
+			},
+		},
+	}
+
+	
+	options.args.modules = self:GetModuleOptions()
+	options.args.modules.order = new_order()
 	
 	options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(mUI.db)
 	options.args.profile.order = new_order()
@@ -86,6 +254,7 @@ function Options:ToggleConfig()
 	return Options:ToggleConfig()
 end
 
+--- Set up the LDB object
 function Options:SetupLDB()
 	local LDB = LibStub("LibDataBroker-1.1", true)
 	if not LDB then return end
@@ -101,5 +270,171 @@ function Options:SetupLDB()
 		tt:AddLine("Click to toggle configuration")
 	end
 	
-	self.ldbojb = l
+	self.LibDataBrokerLauncher = l
+end
+
+function mUI.defaultModulePrototype:SetOptions(func)
+	if DEBUG then
+		expect(func, "typeof", "function")		
+		expect(moduleFullOptions[self], "==", nil)
+	end
+	
+	moduleFullOptions[self] = func
+end
+
+function Options:GetModuleOptions()
+	local moduleOptions = {
+		type = "group",
+		name = "Modules",
+		desc = "Modules provide functionallity to mUI.",
+		args = {},
+		childGroups = "tree",
+	}
+	
+	local moduleArgs = {
+		enabled = {
+			type = "toggle",
+			name = "Enable",
+			desc = "Globally enable this module.",
+			order = 1,
+			get = function(info)
+				return info.handler:IsEnabled()
+			end,
+			set = function(info, value)
+				if value then
+					mUI:EnableModuleState(info.handler)
+				else
+					mUI:DisableModuleState(info.handler)
+				end
+			end
+		},
+		moduleSplit = {
+			type = "description",
+			name = "",
+			order = 2,
+		},
+	}
+	
+	local function merge_onto(dict, ...)
+		for i = 1, select('#', ...), 2 do
+			local k, v = select(i, ...)
+			if not v.order then
+				v.order = 100 + i
+			end
+			dict[k] = v
+		end
+	end
+	
+	function Options:HandleModuleLoaded(module)
+		if DEBUG then
+			expect(module, "typeof", "table")
+			expect(module.IsEnabled, "typeof", "function")
+		end
+		
+		local id = module.id
+		local opt = {
+			type = "group",
+			name = module.name,
+			desc = module.desc,
+			handler = module,
+			args = {},
+		}
+		
+		moduleOptions.args[module.baseName] = opt
+		for k, v in pairs(moduleArgs) do
+			opt.args[k] = v
+		end		
+		
+		if moduleFullOptions[module] then
+			merge_onto(opt.args, moduleFullOptions[module](module))
+			moduleFullOptions[module] = false
+		end
+	end
+	
+	for id, module in mUI:IterateModules() do
+		Options:HandleModuleLoaded(module)
+	end
+	
+	local function loadable(info)
+		local id = info[#info - 1]
+		local _,_,_,_,loadable = GetAddOnInfo(id)
+		return loadable
+	end
+
+	local function unloadable(info)
+		return not loadable(info)
+	end
+
+	local arg_enabled = {
+		type = "toggle",
+		name = "Enable",
+		desc = "Globally enable this module.",
+		get = function(info)
+			return false
+		end,
+		set = function(info, value)
+			local id = info[#info - 1]
+			mUI:LoadAndEnableModule(id)
+		end,
+		disabled = unloadable,
+	}
+	
+	local no_mem_notice = {
+		type = "description",
+		name = "This module is not loaded and will not take up and memory or processing power until enabled.",
+		order = -1,
+		hidden = unloadable,
+	}
+	
+	local unloadable_notice = {
+		type = "description",
+		name = function(info)
+			local id = info[#info - 1]
+			local _,_,_,_,loadable,reason = GetAddOnInfo(id)
+			if not loadable then
+				if reason then
+					if reason == "DISABLED" then
+						reason = "Disabled in the Blizzard addon list."
+					else
+						reason = _G["ADDON_"..reason]
+					end
+				end
+				if not reason then
+					reason = UNKNOWN
+				end
+				return format("This module can not be loaded: %s", reason)
+			end
+		end,
+		order = -1,
+		hidden = loadable,
+	}
+	
+	for i, moduleID in ipairs(mUI.ModulesNotLoaded) do
+		if not moduleOptions.args[moduleID] then
+			local title = GetAddOnMetadata(moduleID, "Title")
+			local notes = GetAddOnMetadata(moduleID, "Notes")	
+			
+			local name = title:match(".*-%s?(.*)$")
+			if not name then
+				name = moduleID
+			else
+				name = name:gsub("|r", ""):gsub("|c%x%x%x%x%x%x%x%x", "")
+			end
+		
+			local opt = {
+				type = "group",
+				name = name,
+				desc = notes,
+				args = {
+					enabled = arg_enabled,
+					no_mem_notice = no_mem_notice,
+					unloadable_notice = unloadable_notice,
+				},
+			}
+			
+			moduleOptions.args[moduleID] = opt
+		end
+	end
+	
+	return moduleOptions
 end

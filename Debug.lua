@@ -144,15 +144,19 @@ end
 local Debug = {}
 Debug.expect = expect
 
+--- Adds a variable to the global namespace and prefixes it with the addon name
+-- @param name Name of the variable in the global space.
+-- @param data The variable to put in the global space.
 function Debug:AddGlobal(name, data)
 	if DEBUG then
 		expect(name, "typeof", "string")
-		expect(data, "~=", nil)
 		
 		_G[("%s_%s"):format(addonName, name)] = data
 	end	
 end
 
+--- Prints debug messages only if DEBUG is enabled.
+-- @param ... The paramaters to print.
 function Debug:Print(...)
 	if DEBUG then		
 		local t = ...
