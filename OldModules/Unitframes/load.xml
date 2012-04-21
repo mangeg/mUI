@@ -1,0 +1,11 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Include file="Plugins\load.xml"/>
+	<Script file="Core.lua"/>
+	<Script file="Config.lua"/>
+	<Script file="Tags.lua"/>
+	<Script file="Constructors.lua"/>
+	<Script file="Updaters.lua"/>
+	<Script file="FrameUpdaters.lua"/>
+	<Include file="Units\load.xml"/>
+	<Include file="Groups\load.xml"/>
+</Ui>
