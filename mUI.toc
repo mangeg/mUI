@@ -1,4 +1,4 @@
-## Interface: 40300
+﻿## Interface: 40300
 ## Title: m|cffe06767UI|r
 ## Author: mangeg
 ## Version: 1.0

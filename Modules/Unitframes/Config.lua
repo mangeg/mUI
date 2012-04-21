@@ -138,10 +138,21 @@ plugin:SetOptions(function(self)
 		}
 		
 		return otherOptions
-	end
-	
+	end	
 
-	return "Colors", {
+	return "Layouts", {
+		type = "group",
+		name = "Layouts",
+		childGroups = "select",
+		args = self.Options:GetLayoutOptions(),
+	},	
+	"Units", {
+		type = "group",
+		name = "Units",
+		childGroups = "select",
+		args = self.Options:GetUnitOptions(),
+	},
+	"Colors", {
 		type = "group",
 		name = "Colors",
 		get = function(info)
@@ -173,13 +184,16 @@ plugin:SetOptions(function(self)
 				args = GetOthersColorOptions(),
 			},
 		},
-	}, "Modules", self.Options:GetModuleOptions()
+	},	
+	"Modules", self.Options:GetModuleOptions()
 end)
 
 local Options = {}
 plugin.Options = Options
 
 function Options:GetModuleOptions()
+	plugin:LoadModules()
+	
 	local moduleOptions = {
 		type = "group",
 		name = "Modules",
@@ -222,7 +236,8 @@ function Options:GetModuleOptions()
 		end
 	end
 	
-	function Options:HandleModuleLoaded(module)
+	
+	function Options:HandleModuleLoaded(module)		
 		if DEBUG then
 			expect(module, "typeof", "table")
 			expect(module.IsEnabled, "typeof", "function")
@@ -232,7 +247,7 @@ function Options:GetModuleOptions()
 		local opt = {
 			type = "group",
 			name = module.name,
-			desc = module.desc,
+			desc = module.description,
 			handler = module,
 			args = {},
 		}
@@ -252,7 +267,254 @@ function Options:GetModuleOptions()
 		Options:HandleModuleLoaded(module)
 	end
 	
+	local function loadable(info)
+		local id = info[#info - 1]
+		local _,_,_,_,loadable = GetAddOnInfo(id)
+		return loadable
+	end
+
+	local function unloadable(info)
+		return not loadable(info)
+	end
+
+	local arg_enabled = {
+		type = "toggle",
+		name = "Enable",
+		desc = "Globally enable this module.",
+		get = function(info)
+			return false
+		end,
+		set = function(info, value)
+			local id = info[#info - 1]
+			plugin:LoadAndEnableModule(id)
+		end,
+		disabled = unloadable,
+	}
+	
+	local no_mem_notice = {
+		type = "description",
+		name = "This module is not loaded and will not take up and memory or processing power until enabled.",
+		order = -1,
+		hidden = unloadable,
+	}
+	
+	local unloadable_notice = {
+		type = "description",
+		name = function(info)
+			local id = info[#info - 1]
+			local _,_,_,_,loadable,reason = GetAddOnInfo(id)
+			if not loadable then
+				if reason then
+					if reason == "DISABLED" then
+						reason = "Disabled in the Blizzard addon list."
+					else
+						reason = _G["ADDON_"..reason]
+					end
+				end
+				if not reason then
+					reason = UNKNOWN
+				end
+				return format("This module can not be loaded: %s", reason)
+			end
+		end,
+		order = -1,
+		hidden = loadable,
+	}
+	
+	for i, moduleID in ipairs(plugin.ModulesNotLoaded) do
+		if not moduleOptions.args[moduleID] then
+			local title = GetAddOnMetadata(moduleID, "Title")
+			local notes = GetAddOnMetadata(moduleID, "Notes")	
+			
+			local name = title:match("[[](.*)[]]$")
+			if not name then
+				name = moduleID
+			else
+				name = name:gsub("|r", ""):gsub("|c%x%x%x%x%x%x%x%x", "")
+			end
+		
+			local opt = {
+				type = "group",
+				name = name,
+				desc = notes,
+				args = {
+					enabled = arg_enabled,
+					no_mem_notice = no_mem_notice,
+					unloadable_notice = unloadable_notice,
+				},
+			}
+			
+			moduleOptions.args[moduleID] = opt
+		end
+	end
+	
 	return moduleOptions
+end
+
+local units = {
+	player = true,
+	target = true,
+	targettarget = true,
+}
+
+function Options:GetUnitOptions()
+	local order = 1
+	local function newOrder()
+		order = order + 1
+		return order
+	end
+
+	local unitOptions = {
+	}
+	
+	for k, v in pairs(units) do
+		unitOptions[k] = {
+			type = "group",
+			name = k,
+			get = function(info)				
+				local unit = info[#info-1]
+				local unitDB = plugin.db.profile.Units[unit]
+				return mUI.AceGUIGet(unitDB, info)
+			end,
+			set = function(info, ...)
+				local unit = info[#info-1]
+				local unitDB = plugin.db.profile.Units[unit]
+				mUI.AceGUISet(unitDB, info, ...)
+			end,
+			args = {
+				Enabled = {
+					type = "toggle",
+					name = "Enabled",
+					order = newOrder(),
+				},
+				Layout = {
+					type = "select",
+					name = "Layout",
+					order = newOrder(),
+					values = function(info)
+						local t = {}
+						for layout, v in pairs(plugin.db.profile.Layouts) do						
+							t[layout] = v.Name
+						end
+						return t
+					end,
+				},
+				s1 = { type = "description", name = "", order = newOrder() },				
+				X = { 
+					type = "range", 
+					name = "Horizontal position",
+					order = newOrder(),
+					softMin = -math.floor(GetScreenWidth() / 10) * 5,
+					softMax = math.floor(GetScreenWidth() / 10) * 5,
+					step = 1,
+					bigStep = 5,
+				},
+				Y = { 
+					type = "range", 
+					name = "Vertical position",
+					order = newOrder(),
+					softMin = -math.floor(GetScreenHeight() / 10) * 5,
+					softMax = math.floor(GetScreenHeight() / 10) * 5,
+					step = 1,
+					bigStep = 5,
+				},
+				s2 = { type = "description", name = "", order = newOrder() },
+				SizeX = {
+					type = "range",
+					name = "Width multiplyer",
+					order = newOrder(),
+					softMin = 0.5,
+					softMax = 2,
+					isPercent = true,
+					step = 0.01,
+					bigStep = 0.05,
+				},
+				SizeY = {
+					type = "range",
+					name = "Height multiplyer",
+					order = newOrder(),
+					softMin = 0.5,
+					softMax = 2,
+					isPercent = true,
+					step = 0.01,
+					bigStep = 0.05,
+				},
+				s3 = { type = "description", name = "", order = newOrder() },
+				Scale = {
+					type = "range",
+					name = "Scale",
+					order = newOrder(),
+					softMin = 0.5,
+					softMax = 2,
+					isPercent = true,
+					step = 0.01,
+					bigStep = 0.05,
+				},
+				FontScale = {
+					type = "range",
+					name = "Font scale",
+					order = newOrder(),
+					softMin = 0.5,
+					softMax = 2,
+					isPercent = true,
+					step = 0.01,
+					bigStep = 0.05,
+				},
+			},
+		}
+	end
+	
+	return unitOptions
+end
+
+function Options:GetLayoutOptions()
+	local order = 1
+	local function newOrder()
+		order = order + 1
+		return order
+	end
+	
+	local CURRENT_LAYOUT = "Normal"
+	local layoutOptions = {
+		currentLayout = {
+			type = "select",
+			name = "Current layout",
+			order = newOrder(),
+			values = function(info)
+				local t = {}
+				for layout, v in pairs(plugin.db.profile.Layouts) do
+					t[layout] = v.Name
+				end
+				return t
+			end,
+			get = function(info)
+				return CURRENT_LAYOUT
+			end,
+			set = function(info, value)
+				CURRENT_LAYOUT = value
+			end
+		},
+		newLayout = {
+			type = "input",
+			name = "New layout",
+			order = newOrder(),
+		},
+		sep1 = { type = "description", name = "", order = newOrder() },
+		renameLayout = {
+			type = "input",
+			name = "Rename layout",
+			get = function(info)
+				local layoutDB = plugin.db.profile.Layouts[CURRENT_LAYOUT]
+				return layoutDB.Name
+			end,
+			set = function(info, value)
+				local layoutDB = plugin.db.profile.Layouts[CURRENT_LAYOUT]
+				layoutDB.Name = value
+			end,
+		},
+	}
+	
+	return layoutOptions
 end
 
 function plugin.defaultModulePrototype:SetOptions(func)

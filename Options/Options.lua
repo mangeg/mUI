@@ -325,17 +325,22 @@ function Options:GetModuleOptions()
 		end
 	end
 	
-	function Options:HandleModuleLoaded(module)
+	local handledLoadedModules = {}
+	function Options:HandleModuleLoaded(module)		
 		if DEBUG then
 			expect(module, "typeof", "table")
 			expect(module.IsEnabled, "typeof", "function")
+		end
+		
+		if handledLoadedModules[module] then
+			return
 		end
 		
 		local id = module.id
 		local opt = {
 			type = "group",
 			name = module.name,
-			desc = module.desc,
+			desc = module.description,
 			handler = module,
 			args = {},
 		}
@@ -349,6 +354,8 @@ function Options:GetModuleOptions()
 			merge_onto(opt.args, moduleFullOptions[module](module))
 			moduleFullOptions[module] = false
 		end
+		
+		handledLoadedModules[module] = true
 	end
 	
 	for id, module in mUI:IterateModules() do

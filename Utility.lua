@@ -10,6 +10,8 @@ local expect = Debug.expect
 
 _, mUI.pClass = UnitClass("player")
 
+mUI.Utility = {}
+
 do
 	local cache = setmetatable({}, {__mode='k'})
 	
@@ -145,6 +147,12 @@ function mUI:ColorGradient(perc, ...)
 	local r1, g1, b1, r2, g2, b2 = select((segment*3)+1, ...)
 
 	return r1 + (r2-r1)*relperc, g1 + (g2-g1)*relperc, b1 + (b2-b1)*relperc
+end
+
+function mUI.Utility.DeepCopy(data)
+	if DEBUG then
+		expect(data, "typeof", "table")
+	end
 end
 
 mUI.AceGUIPoints = {

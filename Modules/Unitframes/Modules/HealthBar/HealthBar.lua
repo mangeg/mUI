@@ -10,7 +10,21 @@ local expect = Debug.expect
 local name, globalPlugin = ...
 local plugin = UF:NewModule("HealthBar", "AceEvent-3.0")
 
-plugin:SetName("Health bar")
+plugin:SetName("Health Bar")
 plugin:SetDescription("Provides health bars for unitframes")
 plugin:SetDefaults({
+	Enabled = true,
 })
+
+function plugin:OnInitialize()
+end
+
+function plugin:OnEnable()
+end
+
+function plugin:OnDisable()
+end
+
+plugin:SetOptions(function(self)
+end)
+

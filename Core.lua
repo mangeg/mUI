@@ -64,6 +64,7 @@ function mUI:OnInitialize()
 	
 	self.Callbacks = LibStub("CallbackHandler-1.0"):New(self)	
 	
+	LoadAddOn("LibDualSpec-1.0")
 	LibStub("LibDualSpec-1.0"):EnhanceDatabase(self.db, name)
 	
 	self:RegisterEvent("ADDON_LOADED")
@@ -121,8 +122,8 @@ function mUI:LoadModules()
 	local sv = self.db.sv
 	local sv_namespaces = sv and sv.namespaces
 	
-	for i, name, moduleName in self:IterateLoadOnDemandModules() do		
-		local module_sv = sv_namespaces[moduleName]
+	for i, name, moduleName in self:IterateLoadOnDemandModules() do
+		local module_sv = sv_namespaces and sv_namespaces[moduleName]
 		local module_profile_db = module_sv and module_sv.profiles and module_sv.profiles[current_profile]
 		local enabled = module_profile_db and module_profile_db.Enabled
 		

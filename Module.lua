@@ -31,7 +31,7 @@ function mUI:GetModuleByID(id)
 	if DEBUG then
 		expect(id, "typeof", "string")
 	end
-
+	
 	for name, module in self:IterateModules() do
 		if module.baseName == id then
 			return module
@@ -119,7 +119,7 @@ do
 			local module = table.remove(newModules, 1)
 			if not module then
 				break
-			end		
+			end
 			
 			mUI.Options:HandleModuleLoaded(module)
 			mUI:CallFunctionOnModules("OnModuleLoaded", module)
@@ -140,8 +140,10 @@ local function createModuleDB(module, defaults)
 
 	mUI.db.SetProfile(db, mUI.db:GetCurrentProfile())
 	
-	if not db.profile.enabled then
+	if not db.profile.Enabled then
 		module:Disable()
+	else
+		mUI:CallFunctionOnModule(module, "OnProfileChanged")
 	end
 end
 
@@ -179,6 +181,7 @@ end
 
 Module.IterateEnabledModules = mUI.IterateEnabledModules
 Module.GetModuleByID = mUI.GetModuleByID
+Module.LoadAndEnableModule = mUI.LoadAndEnableModule
 Module.EnableModuleState = mUI.EnableModuleState
 Module.DisableModuleState = mUI.DisableModuleState
 Module.CallFunctionOnModule = mUI.CallFunctionOnModule

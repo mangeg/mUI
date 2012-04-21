@@ -21,15 +21,17 @@ plugin.ModulesNotLoaded = {}
 
 local defaults = {
 	Enabled = true,
+	
 	Layouts = {
 		["**"] = {
-			name = "Default",
+			Name = "Normal",
 			SizeX = 200,
 			SizeY = 60,
 			Scale = 1,
 			Strata = "MEDIUM",
 			Level = 1,
 		},
+		Normal = {},
 	},
 	
 	Units = {
@@ -39,11 +41,17 @@ local defaults = {
 			Y = 0,
 			SizeX = 1,
 			SizeY = 1,
-			FonstScale = 1,
+			FontScale = 1,
 			Scale = 1,
 			Layout = "Normal",
 		},
-		player = { enabled = true },
+		player = { Enabled = true },
+		target = { Enabled = true },
+		targettarget = { Enabled = true },
+		focus = { Enabled = true },
+		focustarget = { Enabled = true },
+		pet = { Enabled = true },
+		pettarget = { Enabled = true },
 	},
 	
 	Groups = {
@@ -69,6 +77,7 @@ local defaults = {
 			
 			UsePetHeader = nil,
 		},
+		
 	},
 	
 	Colors = {
@@ -85,32 +94,34 @@ local defaults = {
 	},
 }
 
-for powerName, color in pairs(PowerBarColor) do
-	if type(powerName) == "string" then
-		if color.r then
-			defaults.Colors.Power[powerName] = {color.r, color.g, color.b, color.a or 1}
-		elseif powerName == "ECLIPSE" then
-			local pos, neg = color.positive, color.negative
-			if neg then
-				defaults.Colors.Power["BALANCE_NEGATIVE_ENERGY"] = {neg.r, neg.g, neg.b, neg.a or 1}
-			end
-			if pos then
-				defaults.Colors.Power["BALANCE_POSITIVE_ENERGY"] = {pos.r, pos.g, pos.b, pos.a or 1}
+do -- Power and reaction color defaults
+	for powerName, color in pairs(PowerBarColor) do
+		if type(powerName) == "string" then
+			if color.r then
+				defaults.Colors.Power[powerName] = {color.r, color.g, color.b, color.a or 1}
+			elseif powerName == "ECLIPSE" then
+				local pos, neg = color.positive, color.negative
+				if neg then
+					defaults.Colors.Power["BALANCE_NEGATIVE_ENERGY"] = {neg.r, neg.g, neg.b, neg.a or 1}
+				end
+				if pos then
+					defaults.Colors.Power["BALANCE_POSITIVE_ENERGY"] = {pos.r, pos.g, pos.b, pos.a or 1}
+				end
 			end
 		end
 	end
+	defaults.Colors.Power["POWER_TYPE_PYRITE"] = { 0, 0.79215693473816, 1 }
+	defaults.Colors.Power["POWER_TYPE_STEAM"] = { 0.94901967048645, 0.94901967048645, 0.94901967048645 }
+	defaults.Colors.Power["POWER_TYPE_HEAT"] = { 1, 0.490019610742107, 0 }
+	defaults.Colors.Power["POWER_TYPE_BLOOD_POWER"] = { 0.73725494556129, 0, 1 }
+	defaults.Colors.Power["POWER_TYPE_OOZE"] = { 0.75686281919479, 1, 0 }
+	for reaction, color in pairs(FACTION_BAR_COLORS) do
+		defaults.Colors.Reaction[reaction..""] = {color.r, color.g, color.b, color.a or 1}
+	end	
 end
-for reaction, color in pairs(FACTION_BAR_COLORS) do
-	defaults.Colors.Reaction[reaction..""] = {color.r, color.g, color.b, color.a or 1}
-end
-defaults.Colors.Power["POWER_TYPE_PYRITE"] = { 0, 0.79215693473816, 1 }
-defaults.Colors.Power["POWER_TYPE_STEAM"] = { 0.94901967048645, 0.94901967048645, 0.94901967048645 }
-defaults.Colors.Power["POWER_TYPE_HEAT"] = { 1, 0.490019610742107, 0 }
-defaults.Colors.Power["POWER_TYPE_BLOOD_POWER"] = { 0.73725494556129, 0, 1 }
-defaults.Colors.Power["POWER_TYPE_OOZE"] = { 0.75686281919479, 1, 0 }
 
 plugin:SetName("Unitframes")
-plugin:SetDescription("Display unitframes, uncluding raid, boss, assist and more")
+plugin:SetDescription("Display unitframes, including raid, boss, assist and more")
 plugin:SetDefaults(defaults)
 db = plugin.db.profile
 
@@ -128,7 +139,14 @@ end
 
 function plugin:OnProfileChanged()
 	db = self.db.profile
-	gdb = mUI.db.profile
+	gdb = mUI.db.profile	
+	
+	for unit, unitDB in pairs(db.Units) do
+		if unitDB.Enabled then
+			oUF:Spawn(unit)
+		else
+		end
+	end
 	
 	self:LoadModules()
 end
@@ -200,21 +218,23 @@ function plugin:UpdateColors()
 end
 
 function plugin:LoadModules()
+	wipe(self.ModulesNotLoaded)
+	
 	local current_profile = mUI.db:GetCurrentProfile()
 	
 	local sv = mUI.db.sv
 	local sv_namespaces = sv and sv.namespaces
 
 	for i, name, moduleName in self:IterateLoadOnDemandModules() do
-		local module_sv = sv_namespaces[moduleName]
+		local module_sv = sv_namespaces["Unitframes_"..moduleName]
 		local module_profile_db = module_sv and module_sv.profiles and module_sv.profiles[current_profile]
-		local enabled = module_profile_db and module_profile_db.Enabled
+		local enabled = module_profile_db and module_profile_db.Enabled		
 		
 		if enabled == nil then
 			local defaultState = GetAddOnMetadata(name, "X-mUI-DefaultState")
 			local isEnabled = select(4, GetAddOnInfo(name))
 			enabled = (default_state ~= "disabled") and isEnabled ~= nil
-		end
+		end		
 		
 		local loaded, reason
 		if enabled then
@@ -231,7 +251,7 @@ function plugin:LoadModules()
 	end
 end
 
-do
+do -- Load on demand iterator
 	local function checkIfDependand(...)
 		for i = 1, select("#", ...) do
 			if (select(i, ...)) == "mUI_Unitframes" then
@@ -245,6 +265,10 @@ do
 		i = i + 1
 		if i >= total then
 			return nil
+		end
+		
+		if IsAddOnLoaded(i) then
+			return iterAddons(total, i)
 		end
 		
 		if not IsAddOnLoadOnDemand(i) then
@@ -284,3 +308,8 @@ do
 	end
 end
 
+local function CreateUnitFrame(frame, unit)
+	--print(frame, frame:GetName(), unit)
+end
+
+oUF:RegisterStyle(("%s_"):format(name), CreateUnitFrame)

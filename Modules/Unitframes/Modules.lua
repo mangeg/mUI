@@ -10,7 +10,7 @@ local expect = Debug.expect
 
 local newModules = {}
 function plugin:OnModuleCreated(module)
-	local id = module.moduleName
+	local id = "Unitframes_"..module.moduleName
 	if DEBUG then
 		expect(id, "typeof", "string")
 	end
@@ -57,7 +57,7 @@ local function createModuleDB(module, defaults)
 
 	mUI.db.SetProfile(db, mUI.db:GetCurrentProfile())
 	
-	if not db.profile.enabled then
+	if not db.profile.Enabled then
 		module:Disable()
 	end
 end
