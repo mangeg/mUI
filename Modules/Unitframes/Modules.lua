@@ -10,10 +10,12 @@ local expect = Debug.expect
 
 local newModules = {}
 function plugin:OnModuleCreated(module)
-	local id = "Unitframes_"..module.moduleName
 	if DEBUG then
-		expect(id, "typeof", "string")
+		expect(module, "typeof", "table")
+		expect(module.moduleName, "typeof", "string")
 	end
+	
+	local id = ("Unitframes_%s"):format(module.moduleName)
 	
 	module.id = id
 	self[id] = module

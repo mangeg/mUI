@@ -179,11 +179,11 @@ function Module:SetDescription(description)
 	self.description = description
 end
 
-Module.IterateEnabledModules = mUI.IterateEnabledModules
-Module.GetModuleByID = mUI.GetModuleByID
-Module.LoadAndEnableModule = mUI.LoadAndEnableModule
-Module.EnableModuleState = mUI.EnableModuleState
-Module.DisableModuleState = mUI.DisableModuleState
-Module.CallFunctionOnModule = mUI.CallFunctionOnModule
-Module.CallFunctionOnModules = mUI.CallFunctionOnModules
+Module.IterateEnabledModules 		= mUI.IterateEnabledModules
+Module.GetModuleByID 				= mUI.GetModuleByID
+Module.LoadAndEnableModule 			= mUI.LoadAndEnableModule
+Module.EnableModuleState 			= mUI.EnableModuleState
+Module.DisableModuleState 			= mUI.DisableModuleState
+Module.CallFunctionOnModule 		= mUI.CallFunctionOnModule
+Module.CallFunctionOnModules 		= mUI.CallFunctionOnModules
 Module.CallFunctionOnEnabledModules = mUI.CallFunctionOnEnabledModules

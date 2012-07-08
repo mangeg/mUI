@@ -16,7 +16,7 @@ do
 	local cache = setmetatable({}, {__mode='k'})
 	
 	--- Fetch a new table
-	function mUI.new()
+	function mUI:New()
 		local t = next(cache)
 		if t then
 			cache[t] = nil
@@ -29,7 +29,7 @@ do
 	--- Delete a table and put it back in the cache
 	-- @param t The table to delete.
 	-- @usage g = mUI.del(g)
-	function mUI.del(t)
+	function mUI:Del(t)
 		if DEBUG then
 			expect(t, "typeof", "table")
 			expect(t, "not_inset", cache)
@@ -46,7 +46,7 @@ end
 -- @param t1 Table 1
 -- @param t2 Table 2
 -- @usage union = mUI.Merge(table1, table2)
-function mUI.Merge(t1, t2)
+function mUI:Merge(t1, t2)
 	if DEBUG then
 		expect(t1, "typeof", "table")
 		expect(t2, "typeof", "table")
@@ -104,7 +104,7 @@ function mUI:RGBToHex(r, g, b)
 	r = r <= 1 and r >= 0 and r or 0
 	g = g <= 1 and g >= 0 and g or 0
 	b = b <= 1 and b >= 0 and b or 0
-	return string.format("|cff%02x%02x%02x", r*255, g*255, b*255)
+	return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
 function mUI:HexToRGB(hex)

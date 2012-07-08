@@ -352,9 +352,13 @@ function Options:GetModuleOptions()
 end
 
 local units = {
-	player = true,
-	target = true,
-	targettarget = true,
+	player = "Player",
+	target = "Target",
+	targettarget = "Target of Target",
+	focus = "Focus",
+	focustarget = "Focus target",
+	pet = "Pet",
+	pettarget = "Pet target",
 }
 
 function Options:GetUnitOptions()
@@ -370,7 +374,7 @@ function Options:GetUnitOptions()
 	for k, v in pairs(units) do
 		unitOptions[k] = {
 			type = "group",
-			name = k,
+			name = v,
 			get = function(info)				
 				local unit = info[#info-1]
 				local unitDB = plugin.db.profile.Units[unit]

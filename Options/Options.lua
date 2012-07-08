@@ -27,7 +27,7 @@ do
 
 	_G.hash_SlashCmdList["MUI"] = nil
 	_G.SlashCmdList["MUI"] = function()
-		return mUI.Options.OpenConfig()
+		return mUI.Options:ToggleConfig()
 	end
 end
 
