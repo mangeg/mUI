@@ -4,4 +4,6 @@
 ## Dependencies: mUI
 ## Version: 1.0
 
+## X-mUI-LoadCheck: return select(2, UnitClass("player")) == "MONK"
+
 Monk.lua
