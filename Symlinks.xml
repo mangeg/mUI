@@ -4,7 +4,8 @@
 		<Directories>
 			<Directory Path="" Target="mUI" />
 			<Directory Path="Modules\Auras" Target="mUI_Auras" />
-			<Directory Path="Modules\Monk" Target="mUI_Monk" />
+			<Directory Path="Modules\Class" Target="mUI_Class" />
+			<Directory Path="Modules\Class\Modules\Monk" Target="mUI_Class_Monk" />
 			<Directory Path="Modules\Unitframes" Target="mUI_Unitframes" />
 			<Directory Path="Modules\Unitframes\Modules\AltPowerBar" Target="mUI_Unitframes_AltPowerBar" />
 			<Directory Path="Modules\Unitframes\Modules\CastBar" Target="mUI_Unitframes_CastBar" />

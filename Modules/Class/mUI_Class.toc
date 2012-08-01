@@ -1,0 +1,5 @@
+## Interface: 40300
+## Title: m|cffe06767UI|r - |cff51a2c0Class|r
+## LoadOnDemand: 1
+## Dependencies: mUI
+## Version: 1.0
