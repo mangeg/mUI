@@ -81,6 +81,9 @@ function mUI:OnEnable()
 	
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "MediaRegistered")
 	self:UpdateMedia()
+	
+	local anch = self:CreateAnchor("TestAnchor")
+	anch:Show()
 end
 
 --- Load new settings after profile has been changed.

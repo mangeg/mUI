@@ -6,18 +6,17 @@ local Debug = mUI.Debug
 local expect = Debug.expect
 
 local name, globalPlugin = ...
-local plugin = mUI:NewModule("Monk", "AceEvent-3.0")
+local plugin = mUI:NewModule("Class", "AceEvent-3.0")
 setmetatable(globalPlugin, {
 	__index = plugin
 })
 
 local db, gdb
 
-plugin:SetName("Monk")
-plugin:SetDescription("Collection of helpful Monk addons.")
+plugin:SetName("Class")
+plugin:SetDescription("Base addon for separate class addons.")
 plugin:SetDefaults({
 	Enabled = true,
-	HideBlizz = true,
 })
 
 db = plugin.db.profile
@@ -30,8 +29,6 @@ function plugin:OnEnable()
 end
 
 function plugin:OnDisable()
-	PlayerFrameAlternateManaBar:Show()
-	MonkHarmonyBar:Show()
 end
 
 function plugin:OnProfileChanged()
@@ -39,16 +36,11 @@ function plugin:OnProfileChanged()
 	gdb = mUI.db.profile	
 	
 	self:ApplySettings()
+	
+	self:LoadModules()
 end
 
 function plugin:ApplySettings()
-	if db.HideBlizz then
-		MonkHarmonyBar:Hide()
-		PlayerFrameAlternateManaBar:Hide()
-	else
-		MonkHarmonyBar:Show()
-		PlayerFrameAlternateManaBar:Show()
-	end
 end
 
 plugin:SetOptions(function(self)
@@ -58,15 +50,7 @@ plugin:SetOptions(function(self)
 		return order
 	end
 	
-	return "HideBlizz", {
-		type = "toggle",
-		name = "Hide blizzard default",
-		get = function(info)
-			return mUI.AceGUIGet(plugin.db.profile, info)
-		end,
-		set = function(info, ...)
-			mUI.AceGUISet(plugin.db.profile, info, ...)
-			plugin:ApplySettings()
-		end
-	}
+	return "Modules", self:GetModuleOptions()
 end)
+
+mUI:Modularize(name, plugin)

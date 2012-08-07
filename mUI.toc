@@ -12,5 +12,9 @@ Utility.lua
 Objects\Objects.lua
 
 Core.lua
+
+Anchor.lua
+
 Module.lua
+Modularization.lua
 Options\Options.lua

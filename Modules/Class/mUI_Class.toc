@@ -3,3 +3,5 @@
 ## LoadOnDemand: 1
 ## Dependencies: mUI
 ## Version: 1.0
+
+Class.lua

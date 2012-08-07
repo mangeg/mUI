@@ -46,7 +46,7 @@ function mUI:EnableModuleState(module)
 		expect(module, "typeof", "table")
 		expect(module.Enable, "typeof", "function")
 	end
-
+	
 	if module:IsEnabled() then
 		return
 	end
@@ -62,7 +62,7 @@ function mUI:DisableModuleState(module)
 		expect(module, "typeof", "table")
 		expect(module.Disable, "typeof", "function")
 	end
-
+	
 	if not module:IsEnabled() then
 		return
 	end

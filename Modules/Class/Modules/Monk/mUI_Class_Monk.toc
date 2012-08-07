@@ -1,7 +1,7 @@
 ## Interface: 40300
-## Title: m|cffe06767UI|r - |cff51a2c0Monk|r [|cff09b46aMonk|r]
+## Title: m|cffe06767UI|r - |cff51a2c0Class|r [|cff09b46aMonk|r]
 ## LoadOnDemand: 1
-## Dependencies: mUI
+## Dependencies: mUI_Class
 ## Version: 1.0
 
 ## X-mUI-LoadCheck: return select(2, UnitClass("player")) == "MONK"

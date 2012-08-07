@@ -17,8 +17,6 @@ local oUF = oUF
 local db, gdb
 local layout
 
-plugin.ModulesNotLoaded = {}
-
 local defaults = {
 	Enabled = true,
 	
@@ -217,99 +215,10 @@ function plugin:UpdateColors()
 	}, getmetatable(oUF.colors))
 end
 
-function plugin:LoadModules()
-	wipe(self.ModulesNotLoaded)
-	
-	local current_profile = mUI.db:GetCurrentProfile()
-	
-	local sv = mUI.db.sv
-	local sv_namespaces = sv and sv.namespaces
-
-	for i, name, moduleName in self:IterateLoadOnDemandModules() do
-		local module_sv = sv_namespaces["Unitframes_"..moduleName]
-		local module_profile_db = module_sv and module_sv.profiles and module_sv.profiles[current_profile]
-		local enabled = module_profile_db and module_profile_db.Enabled		
-		
-		if enabled == nil then
-			local defaultState = GetAddOnMetadata(name, "X-mUI-DefaultState")
-			local isEnabled = select(4, GetAddOnInfo(name))
-			enabled = (default_state ~= "disabled") and isEnabled ~= nil
-		end		
-		
-		local loaded, reason
-		if enabled then
-			loaded, reason = LoadAddOn(i)
-		end
-		
-		if not loaded and reason then
-			Debug:Print("UF Module failed to load", name, reason)
-		elseif loaded then
-			Debug:Print("Loaded UF Module", name)
-		else
-			tinsert(self.ModulesNotLoaded, name)
-		end
-	end
-end
-
-do -- Load on demand iterator
-	local function checkIfDependand(...)
-		for i = 1, select("#", ...) do
-			if (select(i, ...)) == "mUI_Unitframes" then
-				return true
-			end			
-		end	
-		return false
-	end
-
-	local function iterAddons(total, i)
-		i = i + 1
-		if i >= total then
-			return nil
-		end
-		
-		if IsAddOnLoaded(i) then
-			return iterAddons(total, i)
-		end
-		
-		if not IsAddOnLoadOnDemand(i) then
-			return iterAddons(total, i)
-		end
-		
-		local name = GetAddOnInfo(i)		
-		local moduleName = name:match("mUI_Unitframes_([A-Za-z0-9]*)$")		
-		if not moduleName then
-			return iterAddons(total, i)
-		end
-		
-		if not checkIfDependand(GetAddOnDependencies(i)) then
-			return iterAddons(total, i)
-		end
-		
-		local loadCheck = GetAddOnMetadata(name, "X-mUI-LoadCheck")
-		if loadCheck then
-			local func, err = loadstring(loadCheck)			
-			if func then
-				local success, ret = pcall(func)
-				if not ret then
-					return iterAddons(total, i)
-				end
-			else
-				Debug:Print("Error loading X-mUI-LoadCeck", err)
-			end
-		end
-		
-		return i, name, moduleName
-	end
-	
-	--- Iterator for all modules that are loadable and should be loaded.
-	-- @usage mUI:IterateLoadOnDemandModules()
-	function plugin:IterateLoadOnDemandModules()
-		return iterAddons, GetNumAddOns(), 0
-	end
-end
-
 local function CreateUnitFrame(frame, unit)
 	--print(frame, frame:GetName(), unit)
 end
 
 oUF:RegisterStyle(("%s_"):format(name), CreateUnitFrame)
+
+mUI:Modularize(name, plugin)
