@@ -13,10 +13,6 @@ local LSM = LibStub("LibSharedMedia-3.0")
 
 local db
 
-mUI.Media = {
-	Blank = [[Interface\BUTTONS\WHITE8X8]],
-}
-
 local defaults = {
 	profile = {
 		Modules = {
@@ -33,9 +29,29 @@ local defaults = {
 				["**"] = {
 					Font = LSM:GetDefault("font"),
 					Scale = 1,
+					Color = {1, 1, 1, 1},
+					UseClassColor = false,
+					Flags = "NONE",
+					ShadowOffsetX = 0,
+					ShadowOffsetY = 0,
+					ShadowColor = {0, 0, 0, 1},
 				},
 				Normal = {},				
 			},
+			Borders = {
+				["**"] = {
+					IsSharp = true,
+					SharpWidth = 0.5,
+					SharpShadowWidth = 2.8,
+					Color = {1, 1, 1},
+					SharpShadowColor = {0, 0, 0},
+					UseClassColor = true,
+					Texture = LSM:GetDefault("border"),
+				},
+				Normal = {
+					Name = "Normal Text",
+				},
+			}
 		},
 			
 		Colors = {
@@ -83,6 +99,7 @@ function mUI:OnEnable()
 	self:UpdateMedia()
 	
 	local anch = self:CreateAnchor("TestAnchor")
+	self.anch1 = anch
 	anch:Show()
 end
 

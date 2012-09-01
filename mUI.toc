@@ -10,6 +10,9 @@ mUI.lua
 Debug.lua
 Utility.lua
 Objects\Objects.lua
+Objects\Border.lua
+Objects\SharpBorder.lua
+Media.lua
 
 Core.lua
 

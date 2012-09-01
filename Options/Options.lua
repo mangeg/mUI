@@ -128,6 +128,7 @@ function Options:ToggleConfig()
 			local fontOption = {
 				type = "select",
 				name = "Font",
+				order = new_order(),
 				dialogControl = "LSM30_Font",
 				values = LSM:HashTable("font"),
 			}
@@ -141,17 +142,62 @@ function Options:ToggleConfig()
 					return mUI.AceGUIGet(d, info)
 				end,
 				set = function(info, v1, v2, v3, v4)
-					local d = mUI.db.proifle.Media.Fonts[info[#info-1]]
+					local d = mUI.db.profile.Media.Fonts[info[#info-1]]
 					mUI.AceGUISet(d, info, v1, v2, v3, v4)
+					mUI.Media:UpdateStrings()
 				end,
 				args = {
 					Font = fontOption,
+					Flags = {
+						type = "select",
+						name = "Flags",
+						order = new_order(),
+						values = mUI.AceGUIFontFlags,
+					},
 					Scale = {
 						type = "range",
 						name = "Scale",
+						order = new_order(),
 						min = 0.01,
 						step = 0.01,
+						max = 3,
+					},
+					UseClassColor = {						
+						type = "toggle",
+						name = "Use class color",
+						order = new_order(),
+					},
+					Color = {
+						type = "color",
+						name = "Color",
+						order = new_order(),
+						hasAlpha = true,
+						disabled = function(info)
+							local d = mUI.db.profile.Media.Fonts[info[#info-1]]
+							return d.UseClassColor
+						end,
+					},
+					ShadowColor = {
+						type = "color",
+						name = "Shadow Color",
+						order = new_order(),
+						hasAlpha = true,
+					},
+					ShadowOffsetX = {
+						type = "range",
+						name = "Shadow offset X",
+						order = new_order(),
+						min = -5,
 						max = 5,
+						step = 0.1
+					},
+					ShadowOffsetY = {
+						type = "range",
+						name = "Shadow offset Y",
+						order = new_order(),
+						min = -5,
+						max = 5,
+						step = 0.1
 					},
 				},
 			}
@@ -172,6 +218,39 @@ function Options:ToggleConfig()
 			return textureOptions
 		end
 		
+		local selectedBorder
+		
+		local function GetBorderDB()
+			return mUI.db.profile.Media.Borders[selectedBorder]
+		end
+		
+		local function GetBorderOptions()
+			local borderOptions = {
+			}
+			
+			return borderOptions
+		end	
+		
+		local function GetBorders()
+			local borders = {}
+			
+			for name, db in pairs(mUI.db.profile.Media.Borders) do
+				borders[name] = db.Name
+				local first
+				if not selectedBorder then
+					selectedBorder = name					
+				end				
+				if not first then first = name end
+			end
+			
+			if not borders[selectedBorder] then
+				selectedBorder = first
+			end
+				
+			return borders
+		end	
+		
+		
 		local mediaOptions = {
 			Fonts = {
 				type = "group",
@@ -191,6 +270,56 @@ function Options:ToggleConfig()
 				end,
 				args = GetTextureOptions()
 			},
+			Borders = {
+				type = "group",
+				name = "Borders",
+				args = {				
+					Top = {
+						type = "group",
+						name = "Other",						
+						guiInline = true,
+						args = {
+							border = {
+								type = "select",
+								name = "Select border",
+								order = new_order(),
+								values = function() return GetBorders() end,
+								get = function() return selectedBorder end,
+								set = function(info, value) selectedBorder = value end,
+							},
+							createBorder = {
+								type = "input",
+								name = "Create",
+								order = new_order(),
+								get = function() return "" end,								
+								set = function(info, value) mUI.db.profile.Media.Borders[value] = { Name = value } print(value) end,
+							},
+							deleteBorder = {
+								type = "execute",
+								name = "Delete",
+								confirm = function() return "Are you sure?" end,
+								func = function(info)
+									mUI.db.profile.Media.Borders[selectedBorder] = nil
+								end,
+							},
+							changeName = {
+								type = "input",
+								name = "Rename",
+								order = new_order(),
+								get = function() return GetBorderDB().Name end,								
+								set = function(info, value) GetBorderDB().Name = value end,
+							},
+							bortderSettings = {
+								type = "group",
+								name = "asf",
+								guiInline = true,
+								args = {
+								},
+							},
+						},
+					},
+				},
+			},
 		}
 		
 		for fontName, fontData in pairs(mUI.db.defaults.profile.Media.Fonts) do
@@ -200,7 +329,7 @@ function Options:ToggleConfig()
 		end
 		
 		return mediaOptions
-	end
+	end	
 	
 	local options = {
 		type = "group",

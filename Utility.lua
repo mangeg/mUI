@@ -196,6 +196,15 @@ mUI.AceGUIStrata = {
 	["TOOLTIP"] = "Tooltip",
 }
 
+mUI.AceGUIFontFlags = {
+	["OUTLINE"] = "Outline",
+	["THICKOUTLINE"] = "Thick outline",
+	["MONOCHROME"] = "Monochrome",
+	["MONOCHROME, OUTLINE"] = "Monochrome, outline",
+	["MONOCHROME, THICKOUTLINE"] = "Monochrome, thick outline",
+	["NONE"] = "None",
+}
+
 function mUI.AceGUIGet(d, info)	
 	if DEBUG then
 		expect(d, "typeof", "table")

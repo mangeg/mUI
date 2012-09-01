@@ -8,13 +8,41 @@ local expect = Debug.expect
 
 local Objects = addon_table.Objects
 
+local c1 = 1/3	
+local c2 = 1 - c1
+
+local borderNumbers = {}
+local bordersPos = {
+	"TOPLEFT",
+	"TOPRIGHT",
+	"BOTTOMLEFT",
+	"BOTTOMRIGHT",
+	"TOP",
+	"BOTTOM",
+	"LEFT",
+	"RIGHT",		
+}
+for i, name in pairs(bordersPos) do
+	borderNumbers[name] = i
+end
+local borderCoords = {
+	TOPLEFT 	= { 0, c1,  0, c1},
+	TOPRIGHT 	= {c2,  1,  0, c1},
+	BOTTOMLEFT 	= { 0, c1, c2,  1},
+	BOTTOMRIGHT = {c2,  1, c2,  1},
+	TOP 		= {c1, c2,  0, c1},
+	BOTTOM 		= {c1, c2, c2,  1},
+	LEFT 		= { 0, c1, c1, c2},
+	RIGHT 		= {c2,  1, c1, c2},		
+}
+
 -- Border prototype
 local BorderPrototype = {}
 
 --- Set texture
 -- @name Border:SetTexture
 -- @param texture Texture to set
-function BorderPrototype:SetTexture(texture)
+function BorderPrototype:SetTexture(texture, isBlizz)
 	if DEBUG then
 		expect(texture, "typeof", "string;table")
 	end
@@ -51,7 +79,7 @@ function BorderPrototype:SetTexture(texture)
 			border:SetSize(self.borderWidth, self.borderWidth)
 		end
 		
-		if math.abs(w - h) < 0.1 and w ~= 0 then
+		if not isBlizz then
 			self:SetNormalCoords()
 		else
 			self:SetBlizzCoords()
@@ -64,26 +92,9 @@ end
 --- Set the coords used to the normal ones, for a square texture.
 -- @name Border:SetNormalCoords
 function BorderPrototype:SetNormalCoords()
-	local c1 = 1/3	
-	local c2 = 1 - c1
 	for i, border in pairs(self.borders) do
-		if i == 1 then
-			border:SetTexCoord(0, c1, 0, c1)
-		elseif i == 2 then
-			border:SetTexCoord(c2, 1, 0, c1)
-		elseif i == 3 then
-			border:SetTexCoord(0, c1, c2, 1)
-		elseif i == 4 then
-			border:SetTexCoord(c2, 1, c2, 1)
-		elseif i == 5 then
-			border:SetTexCoord(c1, c2, 0, c1)
-		elseif i == 6 then
-			border:SetTexCoord(c1, c2, c2, 1)
-		elseif i == 7 then
-			border:SetTexCoord(0, c1, c1, c2)
-		elseif i == 8 then
-			border:SetTexCoord(c2, 1, c1, c2)
-		end
+		local coords = borderCoords[bordersPos[i]]
+		border:SetTexCoord(unpack(coords))
 	end
 end
 
@@ -125,6 +136,7 @@ function BorderPrototype:SetWidth(width)
 	for i, border in pairs(self.borders) do
 		border:SetSize(width, width)
 	end
+	self:SetAnchor()
 end
 
 --- Set the frame that the border should anchor to
@@ -167,6 +179,7 @@ function BorderPrototype:SetAnchor(anchor)
 		end
 	end
 	--]]
+	--[[
 	for i, border in pairs(self.borders) do
 		if i == 1 then
 			border:SetPoint("TOPLEFT", anchor)
@@ -188,6 +201,27 @@ function BorderPrototype:SetAnchor(anchor)
 		elseif i == 8 then
 			border:SetPoint("TOPRIGHT", self.borders[2], "BOTTOMRIGHT")
 			border:SetPoint("BOTTOMRIGHT", self.borders[4], "TOPRIGHT")
+		end
+	end
+	--]]
+	
+	for i, border in pairs(self.borders) do
+		local anchorPoint = bordersPos[i]
+		border:SetPoint(anchorPoint, anchor)
+		if i > 4 then
+			if i == 5 then
+				border:SetPoint("LEFT", self.borders[borderNumbers["TOPLEFT"]], "RIGHT")
+				border:SetPoint("RIGHT", self.borders[borderNumbers["TOPRIGHT"]], "LEFT")
+			elseif i == 6 then
+				border:SetPoint("LEFT", self.borders[borderNumbers["BOTTOMLEFT"]], "RIGHT")
+				border:SetPoint("RIGHT", self.borders[borderNumbers["BOTTOMRIGHT"]], "LEFT")
+			elseif i == 7 then
+				border:SetPoint("TOP", self.borders[borderNumbers["TOPLEFT"]], "BOTTOM")
+				border:SetPoint("BOTTOM", self.borders[borderNumbers["BOTTOMLEFT"]], "TOP")
+			elseif i == 8 then
+				border:SetPoint("TOP", self.borders[borderNumbers["TOPRIGHT"]], "BOTTOM")
+				border:SetPoint("BOTTOM", self.borders[borderNumbers["BOTTOMRIGHT"]], "TOP")
+			end
 		end
 	end
 end
