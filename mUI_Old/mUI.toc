@@ -1,0 +1,17 @@
+## Interface: 40300
+## Title: mUI
+## Author: mangeg
+## Version: 1.0
+## SavedVariables: mUIDB
+## Dependencies: oUF
+## OptionalDependencies: Ace3, LibSharedMedia-3.0, LibConfigUI-1.0, AceGUI-3.0-SharedMediaWidgets
+## Notes: mUI
+
+mUI.lua
+Debug.lua
+Utility.lua
+Objects\Objects.lua
+
+Core.lua
+
+Modules\load.xml

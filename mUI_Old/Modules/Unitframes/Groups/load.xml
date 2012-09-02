@@ -1,0 +1,4 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="Boss.lua"/>
+	<Script file="Raid25.lua"/>
+</Ui>
